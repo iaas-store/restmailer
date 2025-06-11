@@ -8,6 +8,8 @@ from typing import Literal
 from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator
 from pydantic_core.core_schema import ValidationInfo
 
+from src.pydantic_list_model import ListModel
+
 
 class MailMessageBodyFileItem(BaseModel):
     model_config = ConfigDict(
@@ -117,7 +119,7 @@ class RuntimeItem(BaseModel):
 
     message: MailMessage
     state: Literal['sending', 'sended', 'error'] = 'sending'
-    events: list[RuntimeItemEvent] = Field(default_factory=list, title='Лог отправки')
+    events: ListModel[RuntimeItemEvent] = Field(default_factory=lambda: ListModel([]), title='Лог отправки')
 
     def log(self, source: str, message: str):
         print(f"[{self.message.guid}] [{source}] {message}")

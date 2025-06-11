@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import json
 import os.path
@@ -9,6 +11,7 @@ from typing import Annotated
 from pydantic import UrlConstraints, AnyUrl, field_validator, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict, NoDecode
 
+from src.pydantic_dict_model import DictModel
 from src.structures import RuntimeItem
 
 
@@ -58,15 +61,7 @@ class HttpConfiguration(BaseSettings):
         exists = os.path.isfile(runtime_file_path)
         if exists:
             assert os.access(runtime_file_path, os.W_OK), 'runtime_file is not writable'
-            content: str = open(runtime_file_path, 'r', encoding='utf-8').read()
-            content: dict = json.loads(content) if content else {}
-            for k, v in content.items():
-                RuntimeItem.model_validate(v)
-        else:
-            f = open(runtime_file_path, 'w')
-            f.write('{}')
-            f.flush()
-            f.close()
+            RuntimeHolder.load(runtime_file_path)
 
         return runtime_file_path
 
@@ -83,18 +78,32 @@ class HttpConfiguration(BaseSettings):
             print('[startup] auth_tokens is None, API working in not secure mode', file=sys.stderr)
         return auth_tokens
 
+
+class RuntimeHolder(DictModel[str, RuntimeItem]):
+    @classmethod
+    def load(cls, runtime_file_path: str | None):
+        if runtime_file_path and os.path.isfile(runtime_file_path):
+            content: bytes = open(runtime_file_path, 'rb').read()
+            content: dict = json.loads(content) if content else {}
+        else:
+            content: dict = {}
+        return cls.model_validate(content)
+
+    def dump(self, runtime_file_path: str | None):
+        if not runtime_file_path: return
+        with open(runtime_file_path, 'w', encoding='utf-8') as f:
+            f.write(self.model_dump_json(indent=2))
+
+
 class Configuration:
     mail: MailConfiguration
     http: HttpConfiguration
-    runtime: dict[str, RuntimeItem]
+    runtime: RuntimeHolder
 
     def rt_save(self):
         if self.http.runtime_file_path:
             with open(self.http.runtime_file_path, 'w', encoding='utf-8') as f:
-                f.write(json.dumps(
-                    {k: v.model_dump(mode='json') for k, v in self.runtime.items()},
-                    indent=2, ensure_ascii=False
-                ))
+                f.write(self.runtime.model_dump_json(indent=2))
 
     def _cleanup_runtime(self):
         last_rt_hash = None
@@ -103,7 +112,7 @@ class Configuration:
             rt = json.dumps({k: v.model_dump(mode='json') for k, v in self.runtime.items()})
             rt_hash = hashlib.sha256(rt.encode()).digest().hex()
             data_len = len(rt)
-            if data_len > 100 * 1024**3:
+            if data_len > 50 * 1024**3:
                 self.runtime.pop(list(self.runtime.keys())[0])
 
             if last_rt_hash != rt_hash:
@@ -115,7 +124,7 @@ class Configuration:
     def __init__(self):
         self.http = HttpConfiguration()
         self.mail = MailConfiguration()
-        self.runtime = {}
+        self.runtime = RuntimeHolder.load(self.http.runtime_file_path)
 
         threading.Thread(
             name='runtime-cleanup',
@@ -127,6 +136,6 @@ class Configuration:
         return json.dumps({
             'mail': self.mail.model_dump(mode='json'),
             'http': self.http.model_dump(mode='json'),
-            'runtime': {k: v.model_dump(mode='json') for k, v in self.runtime.items()}
+            'runtime': self.runtime.model_dump(mode='json')
         }, indent=2, ensure_ascii=True)
 

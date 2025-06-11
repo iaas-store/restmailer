@@ -176,14 +176,6 @@ class HTTPServer:
 
     def __init__(self):
         self.conf = Configuration()
-        if self.conf.http.runtime_file_path:
-            content: str = open(self.conf.http.runtime_file_path, 'r', encoding='utf-8').read()
-            content: dict = json.loads(content) if content else {}
-            self.conf.runtime = {
-                k: RuntimeItem.model_validate(v)
-                for k, v in
-                content.items()
-            }
 
     def serve_http(self):
         signal.signal(signal.SIGINT, self.shutdown_instance)

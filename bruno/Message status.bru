@@ -1,0 +1,15 @@
+meta {
+  name: Message status
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{scheme}}://{{hostname}}:{{port}}/message/:message_id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  message_id: b703b0122fbb4e4f8b75b74c1cef9da5
+}

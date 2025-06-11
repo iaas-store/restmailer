@@ -19,8 +19,15 @@ def build_mime_message(conf: Configuration, mail_message: MailMessage) -> MIMEBa
         msg = MIMEMultipart()
         [msg.attach(x.mime_object) for x in mail_message.data]
 
+    date = datetime.datetime.now(datetime.timezone.utc).strftime('%a, %d %b %Y %H:%M:%S %z')
+
+    msg['Received'] = '; '.join([
+        f'by iaasstore/restmailer via API',
+        f'id {mail_message.guid}',
+        date
+    ])
     msg['Message-Id'] = f'<{mail_message.guid}@{conf.mail.server_name}>'
-    msg['Date'] = datetime.datetime.now(datetime.timezone.utc).strftime('%a, %d %b %Y %H:%M:%S %z')
+    msg['Date'] = date
 
     msg['Subject'] = Header(mail_message.subject, 'utf-8')
     msg['From'] = f'{mail_message.from_name} <{mail_message.from_user}@{conf.mail.domain}>'

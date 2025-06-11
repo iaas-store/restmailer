@@ -23,7 +23,7 @@ def build_mime_message(conf: Configuration, mail_message: MailMessage) -> MIMEBa
 
     msg['Received'] = '; '.join([
         f'by iaasstore/restmailer via API',
-        f'id {mail_message.guid}',
+        f'id {mail_message.guid} for <{mail_message.address_to}>',
         date
     ])
     msg['Message-Id'] = f'<{mail_message.guid}@{conf.mail.server_name}>'

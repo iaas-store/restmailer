@@ -8,7 +8,7 @@ import threading
 import time
 from typing import Annotated
 
-from pydantic import UrlConstraints, AnyUrl, field_validator, Field
+from pydantic import UrlConstraints, AnyUrl, field_validator, Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict, NoDecode
 
 from src.pydantic_dict_model import DictModel
@@ -34,8 +34,18 @@ class MailConfiguration(BaseSettings):
 
     @field_validator('dkim_key_path', mode='after')
     @staticmethod
-    def check_dkim_file_present(dkim_key_path: str):
+    def check_dkim_file(dkim_key_path: str):
         assert os.path.isfile(dkim_key_path), 'dkim_key path is incorrect'
+
+        from src.mailer import dkim_sign
+        from email.mime.multipart import MIMEMultipart
+
+        msg = MIMEMultipart()
+        msg['From'] = 'example@example.com'
+
+        sign = dkim_sign(dkim_key_path, 'example.com', msg)
+        assert sign is not None, 'dkim_key has incorrect format'
+
         return dkim_key_path
 
 

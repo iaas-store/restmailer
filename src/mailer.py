@@ -12,6 +12,16 @@ from src.structures import MailMessage
 from src.utils import get_mx_server_address
 
 
+def dkim_sign(dkim_key_path: str, mail_domain: str, msg: MIMEBase) -> str | None:
+    dkim_sig = dkim.sign(
+        msg.as_bytes(),
+        b'mail',
+        mail_domain.encode(),
+        open(dkim_key_path).read().encode(),
+    ).decode()
+
+    return dkim_sig[len("DKIM-Signature: "):]
+
 def build_mime_message(conf: Configuration, mail_message: MailMessage) -> MIMEBase:
     if len(mail_message.data) == 1 and mail_message.data[0].type == 'text':
         msg = mail_message.data[0].mime_object
@@ -35,16 +45,9 @@ def build_mime_message(conf: Configuration, mail_message: MailMessage) -> MIMEBa
 
     if kp := conf.mail.dkim_key_path:
         try:
-            dkim_sig = dkim.sign(
-                msg.as_bytes(),
-                b'mail',
-                conf.mail.domain.encode(),
-                open(kp).read().encode(),
-            ).decode()
-
-            dkim_sig = dkim_sig[len("DKIM-Signature: "):]
+            dkim_sig = dkim_sign(kp, conf.mail.domain, msg)
             msg['DKIM-Signature'] = dkim_sig
-
+            
             conf.runtime[mail_message.guid].log(
                 'mailer-dkim', f'sign generated, length={len(dkim_sig)}'
             )

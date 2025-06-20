@@ -87,13 +87,15 @@ class MailMessage(BaseModel):
     send_timeout: int | None = Field(
         title='Максимальное время отправки письма',
         description='По умолчанию - MAIL_DEF_MAIL_SEND_TIMEOUT - 30s',
-        default=None
+        default=None,
+        validate_default=True
     )
 
     ignore_starttls_cert: bool | None = Field(
         title='Игнорировать ошибки сертификата при STARTTLS upgrade',
         description='По умолчанию - MAIL_DEF_IGNORE_STARTTLS_CERT - False',
-        default=None
+        default=None,
+        validate_default=True
     )
 
     @field_validator('ignore_starttls_cert', mode='after')

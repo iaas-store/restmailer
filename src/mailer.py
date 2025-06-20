@@ -5,6 +5,7 @@ import time
 from email.header import Header
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
+from email.utils import formataddr
 
 import dkim
 
@@ -44,7 +45,7 @@ def build_mime_message(conf: Configuration, mail_message: MailMessage) -> MIMEBa
     msg['Date'] = date
 
     msg['Subject'] = Header(mail_message.subject, 'utf-8')
-    msg['From'] = f'{mail_message.from_name} <{mail_message.from_user}@{conf.mail.domain}>'
+    msg['From'] = formataddr((str(Header(mail_message.from_name, 'utf-8')), f'{mail_message.from_user}@{conf.mail.domain}'))
     msg['To'] = mail_message.address_to
 
     if kp := conf.mail.dkim_key_path:

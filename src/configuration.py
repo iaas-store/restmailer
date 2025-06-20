@@ -28,9 +28,12 @@ class MailConfiguration(BaseSettings):
     domain: str
     server_name: str
     def_username: str = 'mailserver'
-    def_timeout: int = 5
+    def_smtp_connect_timeout: int = 5
+    def_mail_send_timeout: int = 30
+    def_ignore_starttls_cert: bool = False
     proxy: Annotated[AnyUrl, UrlConstraints(allowed_schemes=['http', 'socks4', 'socks5'])] | None = None
     dkim_key_path: str | None = None
+    dkim_selector: str = 'mail'
 
     @field_validator('dkim_key_path', mode='after')
     @staticmethod
@@ -43,7 +46,7 @@ class MailConfiguration(BaseSettings):
         msg = MIMEMultipart()
         msg['From'] = 'example@example.com'
 
-        sign = dkim_sign(dkim_key_path, 'example.com', msg)
+        sign = dkim_sign(dkim_key_path, 'mail', 'example.com', msg)
         assert sign is not None, 'dkim_key has incorrect format'
 
         return dkim_key_path

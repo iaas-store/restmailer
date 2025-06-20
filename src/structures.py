@@ -84,6 +84,36 @@ class MailMessage(BaseModel):
         MailMessageBodyFileItem
     ] = Field(default_factory=list, title='Тело сообщения и файлы')
 
+    send_timeout: int | None = Field(
+        title='Максимальное время отправки письма',
+        description='По умолчанию - MAIL_DEF_MAIL_SEND_TIMEOUT - 30s',
+        default=None
+    )
+
+    ignore_starttls_cert: bool | None = Field(
+        title='Игнорировать ошибки сертификата при STARTTLS upgrade',
+        description='По умолчанию - MAIL_DEF_IGNORE_STARTTLS_CERT - False',
+        default=None
+    )
+
+    @field_validator('ignore_starttls_cert', mode='after')
+    @staticmethod
+    def using_def_ignore_starttls_cert_if_not_set(ignore_starttls_cert: bool | None, info: ValidationInfo) -> bool:
+        if ignore_starttls_cert is not None: return ignore_starttls_cert
+
+        from src.configuration import Configuration
+        conf: Configuration | None = info.context['conf'] if info.context else None
+        return conf.mail.def_ignore_starttls_cert if conf else False
+
+    @field_validator('send_timeout', mode='after')
+    @staticmethod
+    def using_def_send_timeout_if_not_set(send_timeout: int | None, info: ValidationInfo) -> int:
+        if send_timeout: return send_timeout
+
+        from src.configuration import Configuration
+        conf: Configuration | None = info.context['conf'] if info.context else None
+        return conf.mail.def_mail_send_timeout if conf else 30
+
     @field_validator('from_user', mode='after')
     @staticmethod
     def using_def_user_if_not_set(from_user: str | None, info: ValidationInfo):
@@ -118,6 +148,7 @@ class RuntimeItem(BaseModel):
     )
 
     message: MailMessage
+    ts_added: int = Field(default_factory=lambda: int(time.time()), title='unix timestamp времени')
     state: Literal['sending', 'sended', 'error'] = 'sending'
     events: ListModel[RuntimeItemEvent] = Field(default_factory=lambda: ListModel([]), title='Лог отправки')
 

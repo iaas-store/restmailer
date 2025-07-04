@@ -1,13 +1,17 @@
 FROM python:3.13-slim
 
+LABEL org.opencontainers.image.source="https://github.com/iaas-store/restmailer"
+LABEL org.opencontainers.image.description="Docker image of restmailer"
+LABEL org.opencontainers.image.licenses="MIT"
+
 EXPOSE 80/tcp
 
 RUN mkdir /root/app
 WORKDIR /root/app
 
-ENV TZ Europe/Moscow
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV TZ=Europe/Moscow
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 RUN export PYTHONDONTWRITEBYTECODE=1
 RUN export PYTHONUNBUFFERED=1
 
